@@ -145,18 +145,6 @@ public class BinaryPListParser {
      */
     private int refCount;
     /**
-     * Total count of ofsets.
-     */
-    private int offsetCount;
-    /**
-     * Total count of objects.
-     */
-    private int objectCount;
-    /** 
-     * Offset in file of top level offset in offset table. 
-     */
-    private int topLevelOffset;
-    /**
      * Object table.
      * We gradually fill in objects from the binary PList object table into
      * this list.
@@ -334,19 +322,8 @@ public class BinaryPListParser {
 
 		// Parse the TRAILER
 		// ----------------
-		//	byte size of offset ints in offset table
-		//      byte size of object refs in arrays and dicts
-		//      number of offsets in offset table (also is number of objects)
-		//      element # in offset table which is top level object
-		bb.position(raw.length - 32);
-		//	count of offset ints in offset table
-		offsetCount = (int) bb.getLong();
-		//  count of object refs in arrays and dicts
-		refCount = (int) bb.getLong();
-		//  count of offsets in offset table (also is number of objects)
-		objectCount = (int) bb.getLong();
 		//  element # in offset table which is top level object
-		topLevelOffset = (int) bb.getLong();
+		int topLevelOffset = (int) bb.getLong(raw.length - 8);
 		buf = new byte[topLevelOffset - 8];
 		bb.position(8);
 		bb.get(buf);
