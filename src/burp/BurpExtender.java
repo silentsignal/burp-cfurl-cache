@@ -191,7 +191,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	}
 
 	private static XMLElement parseHexPlist(String s) throws IOException {
-		File f = new File("/tmp/test");
+		File f = File.createTempFile("burp-cfurl-cache-temp", ".plist");
 		try {
 			FileOutputStream fos = new FileOutputStream(f);
 			byte[] b = decodeHex(s);
