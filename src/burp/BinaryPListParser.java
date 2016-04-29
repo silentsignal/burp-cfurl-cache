@@ -11,6 +11,7 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.math.BigInteger;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.text.*;
 import javax.xml.datatype.DatatypeConfigurationException;
 import javax.xml.datatype.DatatypeConstants;
@@ -180,14 +181,37 @@ public class BinaryPListParser {
     /**
      * Holder for a binary PList array element.
      */
-    private static class BPLArray {
+    private static class BPLArray implements List {
 
         ArrayList objectTable;
         int[] objref;
 
-        public Object getValue(int i) {
+        public Object get(int i) {
             return objectTable.get(objref[i]);
         }
+
+		public boolean add(Object o) { throw new UnsupportedOperationException(); }
+		public void add(int location, Object o) { throw new UnsupportedOperationException(); }
+		public boolean addAll(Collection c) { throw new UnsupportedOperationException(); }
+		public boolean addAll(int location, Collection c) { throw new UnsupportedOperationException(); }
+		public void clear() { throw new UnsupportedOperationException(); }
+		public boolean contains(Object o) { throw new UnsupportedOperationException(); }
+		public boolean containsAll(Collection c) { throw new UnsupportedOperationException(); }
+		public int indexOf(Object o) { throw new UnsupportedOperationException(); }
+		public int lastIndexOf(Object o) { throw new UnsupportedOperationException(); }
+		public Iterator iterator() { throw new UnsupportedOperationException(); }
+		public ListIterator listIterator(int i) { throw new UnsupportedOperationException(); }
+		public ListIterator listIterator() { throw new UnsupportedOperationException(); }
+		public Object remove(int i) { throw new UnsupportedOperationException(); }
+		public boolean remove(Object o) { throw new UnsupportedOperationException(); }
+		public boolean removeAll(Collection c) { throw new UnsupportedOperationException(); }
+		public boolean retainAll(Collection c) { throw new UnsupportedOperationException(); }
+		public Object set(int location, Object o) { throw new UnsupportedOperationException(); }
+		public boolean isEmpty() { return objref.length == 0; }
+		public int size() { return objref.length; }
+		public List subList(int s, int e) { throw new UnsupportedOperationException(); }
+		public Object[] toArray(Object[] a) { throw new UnsupportedOperationException(); }
+		public Object[] toArray() { throw new UnsupportedOperationException(); }
 
         @Override
         public String toString() {
@@ -211,11 +235,38 @@ public class BinaryPListParser {
     /**
      * Holder for a binary PList dict element.
      */
-    private static class BPLDict {
+    private static class BPLDict implements Map<String, Object> {
 
         ArrayList objectTable;
         int[] keyref;
         int[] objref;
+
+		public void clear() { throw new UnsupportedOperationException(); }
+		public boolean containsKey(Object key) { throw new UnsupportedOperationException(); }
+		public boolean containsValue(Object value) { throw new UnsupportedOperationException(); }
+		public boolean isEmpty() { return keyref.length > 0; }
+		public Set<String> keySet() { throw new UnsupportedOperationException(); }
+		public Object put(String key, Object value) { throw new UnsupportedOperationException(); }
+		public void putAll(Map<? extends String, ? extends Object> map) { throw new UnsupportedOperationException(); }
+		public Object remove(Object key) { throw new UnsupportedOperationException(); }
+		public int size() { return keyref.length; }
+		public Collection<Object> values() { throw new UnsupportedOperationException(); }
+
+		public Object get(Object key) {
+			for (int i = 0; i < keyref.length; i++) {
+				if (getKey(i).equals(key)) return getValue(i);
+			}
+			return null;
+		}
+
+		public Set<Map.Entry<String, Object>> entrySet() {
+			Set<Map.Entry<String, Object>> retval =
+				new CopyOnWriteArraySet<Map.Entry<String, Object>>();
+			for (int i = 0; i < keyref.length; i++) {
+				retval.add(new AbstractMap.SimpleImmutableEntry(getKey(i), getValue(i)));
+			}
+			return retval;
+		}
 
         public String getKey(int i) {
             return objectTable.get(keyref[i]).toString();
@@ -269,7 +320,7 @@ public class BinaryPListParser {
      * @param file A file containing a binary PList.
      * @return Returns the parsed XMLElement.
      */
-    public XMLElement parse(byte[] raw) throws IOException {
+    public Object parse(byte[] raw) throws IOException {
 		ByteBuffer bb = ByteBuffer.wrap(raw);
         RandomAccessFile raf = null;
         byte[] buf = null;
@@ -315,12 +366,7 @@ public class BinaryPListParser {
             }
         }
 
-        // Convert the object table to XML and return it
-        XMLElement root = new XMLElement(new HashMap(), false, false);
-        root.setName("plist");
-        root.setAttribute("version", "1.0");
-        convertObjectTableToXML(root, objectTable.get(0));
-        return root;
+        return objectTable.get(0);
     }
     
     private long getPosition() {
@@ -340,62 +386,6 @@ public class BinaryPListParser {
         
     }
     
-    /**
-     * Converts the object table in the binary PList into an XMLElement.
-     */
-    private void convertObjectTableToXML(XMLElement parent, Object object) {
-        XMLElement elem = parent.createAnotherElement();
-        if (object instanceof BPLDict) {
-            BPLDict dict = (BPLDict) object;
-            elem.setName("dict");
-            for (int i = 0; i < dict.keyref.length; i++) {
-                XMLElement key = parent.createAnotherElement();
-                key.setName("key");
-                key.setContent(dict.getKey(i));
-                elem.addChild(key);
-                convertObjectTableToXML(elem, dict.getValue(i));
-            }
-        } else if (object instanceof BPLArray) {
-            BPLArray arr = (BPLArray) object;
-            elem.setName("array");
-            for (int i = 0; i < arr.objref.length; i++) {
-                convertObjectTableToXML(elem, arr.getValue(i));
-            }
-
-        } else if (object instanceof String) {
-            elem.setName("string");
-            elem.setContent((String) object);
-        } else if (object instanceof Integer) {
-            elem.setName("integer");
-            elem.setContent(object.toString());
-        } else if (object instanceof Long) {
-            elem.setName("integer");
-            elem.setContent(object.toString());
-        } else if (object instanceof Float) {
-            elem.setName("real");
-            elem.setContent(object.toString());
-        } else if (object instanceof Double) {
-            elem.setName("real");
-            elem.setContent(object.toString());
-        } else if (object instanceof Boolean) {
-            elem.setName("boolean");
-            elem.setContent(object.toString());
-        } else if (object instanceof byte[]) {
-            elem.setName("data");
-            elem.setContent(Base64.encodeBytes((byte[]) object));
-        } else if (object instanceof XMLGregorianCalendar) {
-            elem.setName("date");
-            elem.setContent(((XMLGregorianCalendar) object).toXMLFormat() + "Z");
-        } else if (object instanceof BPLUid) {
-            elem.setName("UID");
-            elem.setContent(Integer.toString(((BPLUid) object).getNumber()));
-        } else {
-            elem.setName("unsupported");
-            elem.setContent(object.toString());
-        }
-        parent.addChild(elem);
-    }
-
     /**
      * Object Formats (marker byte followed by additional info in some cases)
      * null	0000 0000

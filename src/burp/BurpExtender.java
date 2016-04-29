@@ -132,15 +132,14 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID");
 		while (rs.next()) {
 			// decode request_object
-			final List<XMLElement> reqInfo = findArrayChildrenInHexPlist(rs.getString(3));
-			final String verb = reqInfo.get(18).getContent();
-			final List<XMLElement> reqData = reqInfo.get(21).getChildren();
-			final byte[] reqBody = reqData.size() == 0 ? null :
-				Base64.decode(reqData.get(0).getContent());
+			final List reqInfo = findArrayChildrenInHexPlist(rs.getString(3));
+			final String verb = (String)reqInfo.get(18);
+			final Object reqData = reqInfo.get(21);
+			final byte[] reqBody = reqData instanceof List ? (byte[])((List)reqData).get(0) : null;
 			// decode response_object
-			final List<XMLElement> respInfo = findArrayChildrenInHexPlist(rs.getString(1));
-			final URL url = new URL(respInfo.get(0).getChildren().get(3).getContent());
-			final short status = Short.parseShort(respInfo.get(3).getContent());
+			final List respInfo = findArrayChildrenInHexPlist(rs.getString(1));
+			final URL url = new URL((String)((Map<String, Object>)respInfo.get(0)).get("_CFURLString"));
+			final short status = (short)((Long)respInfo.get(3)).longValue();
 			final byte[] respBody = decodeHex(rs.getString(2));
 			// start printing request
 			byte[] req = parseMessage(reqInfo.get(19), SKIP_NOTHING,
@@ -156,7 +155,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		}
 	}
 
-	private static byte[] parseMessage(XMLElement src, Set<String> skipSet, byte[] body,
+	private static byte[] parseMessage(Object src, Set<String> skipSet, byte[] body,
 			String headFormat, Object... headParams) throws IOException {
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		final PrintStream ps = new PrintStream(baos);
@@ -169,25 +168,15 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		return baos.toByteArray();
 	}
 
-	private static void parseHeaders(PrintStream ps, XMLElement src, Set<String> skipSet) {
-		boolean doSkip = false;
-		for (final XMLElement e : src.getChildren()) {
-			final String c = e.getContent();
-			if (e.getName().equals("key")) {
-				if (skipSet.contains(c)) doSkip = true;
-				else ps.printf("%s: ", c);
-			} else if (e.getName().equals("string")) {
-				if (doSkip) doSkip = false;
-				else ps.printf("%s\r\n", c);
-			}
+	private static void parseHeaders(PrintStream ps, Object src, Set<String> skipSet) {
+		for (final Map.Entry<String, Object> e : ((Map<String, Object>)src).entrySet()) {
+			final String key = e.getKey();
+			if (!skipSet.contains(key)) ps.printf("%s: %s\r\n", key, e.getValue());
 		}
 	}
 
-	private static List<XMLElement> findArrayChildrenInHexPlist(final String src) throws IOException {
-		for (final XMLElement e : PARSER.parse(decodeHex(src)).getChildren().get(0).getChildren()) {
-			if (e.getName().equals("array")) return e.getChildren();
-		}
-		return null;
+	private static List findArrayChildrenInHexPlist(final String src) throws IOException {
+		return (List)((Map<String, Object>)PARSER.parse(decodeHex(src))).get("Array");
 	}
 
 	private static byte[] decodeHex(String s) {

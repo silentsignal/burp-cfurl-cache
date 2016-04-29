@@ -18,12 +18,6 @@ License
 -------
 
 The whole project is available under MIT license, see `LICENSE.txt`,
-except for the classes
-
- - `Base64`
- - `XMLParseException`
- - `XMLElement`
- - `BinaryPListParser`
-
-which were taken from the Quaqua project by Werner Randelshofer, and
-are licensed under the Modified BSD License, see `quaqua-license.html`.
+except for the class `BinaryPListParser`˛which was taken from the
+Quaqua project by Werner Randelshofer, and are licensed under the
+Modified BSD License, see `quaqua-license.html`.
