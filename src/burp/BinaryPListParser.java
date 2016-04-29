@@ -322,7 +322,6 @@ public class BinaryPListParser {
      */
     public Object parse(byte[] raw) throws IOException {
 		ByteBuffer bb = ByteBuffer.wrap(raw);
-        RandomAccessFile raf = null;
         byte[] buf = null;
 		// Parse the HEADER
 		// ----------------
