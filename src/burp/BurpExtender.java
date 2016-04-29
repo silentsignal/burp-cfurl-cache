@@ -69,7 +69,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 
 	private static class EntryProxy implements IMessageEditorController {
 		private Entry target;
-		private byte[] EMPTY_BYTE_ARRAY = {};
+		private static final byte[] EMPTY_BYTE_ARRAY = {};
 
 		public void setTarget(Entry target) { this.target = target; }
 		public IHttpService getHttpService() { return target == null ? null : target; }
