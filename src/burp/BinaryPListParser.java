@@ -285,28 +285,11 @@ public class BinaryPListParser {
         // Parse the OBJECT TABLE
         // ----------------------
         objectTable = new ArrayList();
-        try (DataInputStream in = new DataInputStream(pos = new PosByteArrayInputStream(buf))) {
+        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(buf))) {
             parseObjectTable(in);
         }
 
         return objectTable.get(0);
-    }
-    
-    private long getPosition() {
-        return pos.getPos()+8;
-    }
-    
-    private PosByteArrayInputStream pos;
-    private static class PosByteArrayInputStream extends ByteArrayInputStream {
-
-        public PosByteArrayInputStream(byte[] buf) {
-            super(buf);
-        }
-
-        public int getPos() {
-            return pos;
-        }
-        
     }
     
     /**
@@ -334,7 +317,6 @@ public class BinaryPListParser {
     private void parseObjectTable(DataInputStream in) throws IOException {
         int marker;
         while ((marker = in.read()) != -1) {
-            //System.err.println("parseObjectTable marker=" + Integer.toBinaryString(marker)+" 0x"+Integer.toHexString(marker)+" @0x"+Long.toHexString(getPosition()));
             switch ((marker & 0xf0) >> 4) {
                 case 0: {
                     parsePrimitive(in, marker & 0xf);
