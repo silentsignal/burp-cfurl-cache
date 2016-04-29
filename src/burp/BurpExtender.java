@@ -7,6 +7,8 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 import java.sql.DriverManager;
+import java.sql.Connection;
+import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.*;
@@ -124,36 +126,38 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 			SQLException, ClassNotFoundException {
 		Class.forName("org.sqlite.JDBC");
 		// BLOB is not implemented by SQLite JDBC driver...
-		ResultSet rs = DriverManager.getConnection("jdbc:sqlite:" + dbFile)
-			.createStatement().executeQuery(
-				"SELECT HEX(response_object), HEX(receiver_data), " +
-				"HEX(request_object), time_stamp FROM cfurl_cache_blob_data bd " +
-				"JOIN cfurl_cache_receiver_data rd ON bd.entry_ID = rd.entry_ID " +
-				"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID");
-		while (rs.next()) {
-			// decode request_object
-			final List reqInfo = findArrayChildrenInHexPlist(rs.getString(3));
-			final String verb = (String)reqInfo.get(18);
-			final Object reqData = reqInfo.get(21);
-			final byte[] reqBody = reqData instanceof List ? (byte[])((List)reqData).get(0) : null;
-			// decode response_object
-			final List respInfo = findArrayChildrenInHexPlist(rs.getString(1));
-			final URL url = new URL((String)((Map<String, Object>)respInfo.get(0)).get("_CFURLString"));
-			final short status = (short)((Long)respInfo.get(3)).longValue();
-			final byte[] respBody = decodeHex(rs.getString(2));
-			// start printing request
-			byte[] req = parseMessage(reqInfo.get(19), SKIP_NOTHING,
-					reqBody, "%s %s HTTP/1.1\r\n", verb, url.getFile());
-			// start printing response
-			byte[] resp = parseMessage(respInfo.get(4), SKIP_CONTENT_LENGTH_ENCODING,
-					respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
-					status, httpStatusString(status), respBody.length);
-			// create entry
-			final Date ts = DatatypeConverter.parseDateTime(
-					rs.getString(4).replace(' ', 'T')).getTime();
-			model.addElement(new Entry(req, resp, verb, url, ts, status));
+		try (
+				Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
+				Statement stmt = conn.createStatement();
+				ResultSet rs = stmt.executeQuery(
+					"SELECT HEX(response_object), HEX(receiver_data), " +
+					"HEX(request_object), time_stamp FROM cfurl_cache_blob_data bd " +
+					"JOIN cfurl_cache_receiver_data rd ON bd.entry_ID = rd.entry_ID " +
+					"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID")) {
+			while (rs.next()) {
+				// decode request_object
+				final List reqInfo = findArrayChildrenInHexPlist(rs.getString(3));
+				final String verb = (String)reqInfo.get(18);
+				final Object reqData = reqInfo.get(21);
+				final byte[] reqBody = reqData instanceof List ? (byte[])((List)reqData).get(0) : null;
+				// decode response_object
+				final List respInfo = findArrayChildrenInHexPlist(rs.getString(1));
+				final URL url = new URL((String)((Map<String, Object>)respInfo.get(0)).get("_CFURLString"));
+				final short status = (short)((Long)respInfo.get(3)).longValue();
+				final byte[] respBody = decodeHex(rs.getString(2));
+				// start printing request
+				byte[] req = parseMessage(reqInfo.get(19), SKIP_NOTHING,
+						reqBody, "%s %s HTTP/1.1\r\n", verb, url.getFile());
+				// start printing response
+				byte[] resp = parseMessage(respInfo.get(4), SKIP_CONTENT_LENGTH_ENCODING,
+						respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
+						status, httpStatusString(status), respBody.length);
+				// create entry
+				final Date ts = DatatypeConverter.parseDateTime(
+						rs.getString(4).replace(' ', 'T')).getTime();
+				model.addElement(new Entry(req, resp, verb, url, ts, status));
+			}
 		}
-		rs.close();
 	}
 
 	private static byte[] parseMessage(Object src, Set<String> skipSet, byte[] body,
