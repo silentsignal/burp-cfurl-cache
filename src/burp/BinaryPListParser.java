@@ -200,24 +200,6 @@ public class BinaryPListParser {
 		public List subList(int s, int e) { throw new UnsupportedOperationException(); }
 		public Object[] toArray(Object[] a) { throw new UnsupportedOperationException(); }
 		public Object[] toArray() { throw new UnsupportedOperationException(); }
-
-        @Override
-        public String toString() {
-            StringBuffer buf = new StringBuffer("Array{");
-            for (int i = 0; i < objref.length; i++) {
-                if (i > 0) {
-                    buf.append(',');
-                }
-                if (objectTable.size() > objref[i]
-                        && objectTable.get(objref[i]) != this) {
-                    buf.append(objectTable.get(objref[i]));
-                } else {
-                    buf.append("*" + objref[i]);
-                }
-            }
-            buf.append('}');
-            return buf.toString();
-        }
     }
 
     /**
@@ -262,35 +244,6 @@ public class BinaryPListParser {
 
         public Object getValue(int i) {
             return objectTable.get(objref[i]);
-        }
-
-        @Override
-        public String toString() {
-            StringBuffer buf = new StringBuffer("BPLDict{");
-            for (int i = 0; i < keyref.length; i++) {
-                if (i > 0) {
-                    buf.append(',');
-                }
-                if (keyref[i] < 0 || keyref[i] >= objectTable.size()) {
-                    buf.append("#" + keyref[i]);
-                } else if (objectTable.get(keyref[i]) == this) {
-                    buf.append("*" + keyref[i]);
-                } else {
-                    buf.append(objectTable.get(keyref[i]));
-                    //buf.append(keyref[i]);
-                }
-                buf.append(":");
-                if (objref[i] < 0 || objref[i] >= objectTable.size()) {
-                    buf.append("#" + objref[i]);
-                } else if (objectTable.get(objref[i]) == this) {
-                    buf.append("*" + objref[i]);
-                } else {
-                    buf.append(objectTable.get(objref[i]));
-                    //buf.append(objref[i]);
-                }
-            }
-            buf.append('}');
-            return buf.toString();
         }
     }
 
