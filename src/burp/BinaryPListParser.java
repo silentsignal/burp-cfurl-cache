@@ -285,15 +285,8 @@ public class BinaryPListParser {
         // Parse the OBJECT TABLE
         // ----------------------
         objectTable = new ArrayList();
-        DataInputStream in = null;
-        try {
-            in = new DataInputStream(
-                    pos=new PosByteArrayInputStream(buf));
+        try (DataInputStream in = new DataInputStream(pos = new PosByteArrayInputStream(buf))) {
             parseObjectTable(in);
-        } finally {
-            if (in != null) {
-                in.close();
-            }
         }
 
         return objectTable.get(0);
