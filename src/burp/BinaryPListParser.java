@@ -278,14 +278,12 @@ public class BinaryPListParser {
 		refCount = (int) bb.getLong(raw.length - 24);
 		//  element # in offset table which is top level object
 		int topLevelOffset = (int) bb.getLong(raw.length - 8);
-		final byte[] buf = new byte[topLevelOffset - 8];
-		bb.position(8);
-		bb.get(buf);
 
         // Parse the OBJECT TABLE
         // ----------------------
         objectTable = new ArrayList();
-        try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(buf))) {
+        try (DataInputStream in = new DataInputStream(
+					new ByteArrayInputStream(raw, 8, topLevelOffset - 8))) {
             parseObjectTable(in);
         }
 
