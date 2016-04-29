@@ -19,11 +19,11 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	private final static BinaryPListParser PARSER = new BinaryPListParser();
 	private final static byte[] CRLF = {'\r', '\n'};
 	private final static Set<String> SKIP_CONTENT_LENGTH_ENCODING =
-		new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+		new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 	private final static Set<String> SKIP_NOTHING = Collections.emptySet();
 	// TODO use table instead of list
-	private final DefaultListModel<Entry> model = new DefaultListModel<Entry>();
-	private final JList<Entry> list = new JList<Entry>(model);
+	private final DefaultListModel<Entry> model = new DefaultListModel<>();
+	private final JList<Entry> list = new JList<>(model);
 	private final JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT); 
 	private final JTabbedPane tabs = new JTabbedPane();
 	private IMessageEditor requestViewer, responseViewer;
@@ -142,7 +142,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				final byte[] reqBody = reqData instanceof List ? (byte[])((List)reqData).get(0) : null;
 				// decode response_object
 				final List respInfo = findArrayChildrenInHexPlist(rs.getString(1));
-				final URL url = new URL((String)((Map<String, Object>)respInfo.get(0)).get("_CFURLString"));
+				final URL url = new URL((String)((Map)respInfo.get(0)).get("_CFURLString"));
 				final short status = (short)((Long)respInfo.get(3)).longValue();
 				final byte[] respBody = decodeHex(rs.getString(2));
 				// start printing request
@@ -181,7 +181,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	}
 
 	private static List findArrayChildrenInHexPlist(final String src) throws IOException {
-		return (List)((Map<String, Object>)PARSER.parse(decodeHex(src))).get("Array");
+		return (List)((Map)PARSER.parse(decodeHex(src))).get("Array");
 	}
 
 	private static byte[] decodeHex(String s) {
