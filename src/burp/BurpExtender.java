@@ -184,23 +184,10 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	}
 
 	private static List<XMLElement> findArrayChildrenInHexPlist(final String src) throws IOException {
-		for (final XMLElement e : parseHexPlist(src).getChildren().get(0).getChildren()) {
+		for (final XMLElement e : PARSER.parse(decodeHex(src)).getChildren().get(0).getChildren()) {
 			if (e.getName().equals("array")) return e.getChildren();
 		}
 		return null;
-	}
-
-	private static XMLElement parseHexPlist(String s) throws IOException {
-		File f = File.createTempFile("burp-cfurl-cache-temp", ".plist");
-		try {
-			FileOutputStream fos = new FileOutputStream(f);
-			byte[] b = decodeHex(s);
-			fos.write(b, 0, b.length);
-			fos.close();
-			return PARSER.parse(f);
-		} finally {
-			f.delete();
-		}
 	}
 
 	private static byte[] decodeHex(String s) {

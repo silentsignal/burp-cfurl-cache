@@ -8,6 +8,7 @@ package burp;
  * accompanying license terms.
  */
 import java.io.*;
+import java.nio.ByteBuffer;
 import java.math.BigInteger;
 import java.util.*;
 import java.text.*;
@@ -268,45 +269,37 @@ public class BinaryPListParser {
      * @param file A file containing a binary PList.
      * @return Returns the parsed XMLElement.
      */
-    public XMLElement parse(File file) throws IOException {
+    public XMLElement parse(byte[] raw) throws IOException {
+		ByteBuffer bb = ByteBuffer.wrap(raw);
         RandomAccessFile raf = null;
         byte[] buf = null;
-        try {
-            raf = new RandomAccessFile(file, "r");
+		// Parse the HEADER
+		// ----------------
+		//  magic number ("bplist")
+		//  file format version ("00")
+		long bplist00 = bb.getLong();
+		if (bplist00 != 0x62706c6973743030L) {
+			throw new IOException("parseHeader: File does not start with 'bplist00' magic.");
+		}
 
-            // Parse the HEADER
-            // ----------------
-            //  magic number ("bplist")
-            //  file format version ("00")
-            int bpli = raf.readInt();
-            int st00 = raf.readInt();
-            if (bpli != 0x62706c69 || st00 != 0x73743030) {
-                throw new IOException("parseHeader: File does not start with 'bplist00' magic.");
-            }
-
-            // Parse the TRAILER
-            // ----------------
-            //	byte size of offset ints in offset table
-            //      byte size of object refs in arrays and dicts
-            //      number of offsets in offset table (also is number of objects)
-            //      element # in offset table which is top level object
-            raf.seek(raf.length() - 32);
-            //	count of offset ints in offset table
-            offsetCount = (int) raf.readLong();
-            //  count of object refs in arrays and dicts
-            refCount = (int) raf.readLong();
-            //  count of offsets in offset table (also is number of objects)
-            objectCount = (int) raf.readLong();
-            //  element # in offset table which is top level object
-            topLevelOffset = (int) raf.readLong();
-            buf = new byte[topLevelOffset - 8];
-            raf.seek(8);
-            raf.readFully(buf);
-        } finally {
-            if (raf != null) {
-                raf.close();
-            }
-        }
+		// Parse the TRAILER
+		// ----------------
+		//	byte size of offset ints in offset table
+		//      byte size of object refs in arrays and dicts
+		//      number of offsets in offset table (also is number of objects)
+		//      element # in offset table which is top level object
+		bb.position(raw.length - 32);
+		//	count of offset ints in offset table
+		offsetCount = (int) bb.getLong();
+		//  count of object refs in arrays and dicts
+		refCount = (int) bb.getLong();
+		//  count of offsets in offset table (also is number of objects)
+		objectCount = (int) bb.getLong();
+		//  element # in offset table which is top level object
+		topLevelOffset = (int) bb.getLong();
+		buf = new byte[topLevelOffset - 8];
+		bb.position(8);
+		bb.get(buf);
 
         // Parse the OBJECT TABLE
         // ----------------------
