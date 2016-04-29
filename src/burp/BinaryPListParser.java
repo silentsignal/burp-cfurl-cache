@@ -274,6 +274,8 @@ public class BinaryPListParser {
 
 		// Parse the TRAILER
 		// ----------------
+		//  count of object refs in arrays and dicts
+		refCount = (int) bb.getLong(raw.length - 24);
 		//  element # in offset table which is top level object
 		int topLevelOffset = (int) bb.getLong(raw.length - 8);
 		final byte[] buf = new byte[topLevelOffset - 8];
