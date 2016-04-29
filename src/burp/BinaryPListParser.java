@@ -263,7 +263,6 @@ public class BinaryPListParser {
      */
     public Object parse(byte[] raw) throws IOException {
 		ByteBuffer bb = ByteBuffer.wrap(raw);
-        byte[] buf = null;
 		// Parse the HEADER
 		// ----------------
 		//  magic number ("bplist")
@@ -277,7 +276,7 @@ public class BinaryPListParser {
 		// ----------------
 		//  element # in offset table which is top level object
 		int topLevelOffset = (int) bb.getLong(raw.length - 8);
-		buf = new byte[topLevelOffset - 8];
+		final byte[] buf = new byte[topLevelOffset - 8];
 		bb.position(8);
 		bb.get(buf);
 
