@@ -153,6 +153,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 					rs.getString(4).replace(' ', 'T')).getTime();
 			model.addElement(new Entry(req, resp, verb, url, ts, status));
 		}
+		rs.close();
 	}
 
 	private static byte[] parseMessage(Object src, Set<String> skipSet, byte[] body,
