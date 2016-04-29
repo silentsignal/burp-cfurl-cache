@@ -18,6 +18,6 @@ License
 -------
 
 The whole project is available under MIT license, see `LICENSE.txt`,
-except for the class `BinaryPListParser`˛which was taken from the
+except for the class `BinaryPListParser` which was taken from the
 Quaqua project by Werner Randelshofer, and are licensed under the
 Modified BSD License, see `quaqua-license.html`.
