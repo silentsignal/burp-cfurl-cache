@@ -209,17 +209,17 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		}
 
 		private enum Version {
-			V9(9, 18, 19, 21),
-			V4(4, 13, 14, NOT_AVAILABLE),
-			V3(3, 12, 13, NOT_AVAILABLE);
+			V9(9, 18, 21),
+			V4(4, 13, NOT_AVAILABLE),
+			V3(3, 12, NOT_AVAILABLE);
 
 			public final int verbIndex, headersIndex, reqDataIndex;
 			private final int number;
 
-			private Version(int number, int verbIndex, int headersIndex, int reqDataIndex) {
+			private Version(int number, int verbIndex, int reqDataIndex) {
 				this.number = number;
 				this.verbIndex = verbIndex;
-				this.headersIndex = headersIndex;
+				this.headersIndex = verbIndex + 1;
 				this.reqDataIndex = reqDataIndex;
 			}
 
