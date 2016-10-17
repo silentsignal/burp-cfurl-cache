@@ -146,7 +146,8 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				final byte[] respBody = decodeHex(rs.getString(2));
 				// start printing request
 				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_NOTHING,
-						reqInfo.getBody(), "%s %s HTTP/1.1\r\n", verb, url.getFile());
+						reqInfo.getBody(), "%s %s HTTP/1.1\r\nHost: %s\r\n", verb,
+						url.getFile(), url.getHost());
 				// start printing response
 				byte[] resp = parseMessage(respInfo.get(4), SKIP_CONTENT_LENGTH_ENCODING,
 						respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
