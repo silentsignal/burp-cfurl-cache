@@ -182,7 +182,11 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	}
 
 	private static List findArrayChildrenInHexPlist(final String src) throws IOException {
-		return (List)((Map)PARSER.parse(decodeHex(src))).get("Array");
+		return (List)parseHexPlistMap(src).get("Array");
+	}
+
+	private static Map parseHexPlistMap(final String src) throws IOException {
+		return (Map)PARSER.parse(decodeHex(src));
 	}
 
 	private static byte[] decodeHex(String s) {
