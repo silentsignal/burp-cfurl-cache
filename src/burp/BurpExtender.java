@@ -137,18 +137,16 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 					"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID")) {
 			while (rs.next()) {
 				// decode request_object
-				final List reqInfo = findArrayChildrenInHexPlist(rs.getString(3));
-				final String verb = (String)reqInfo.get(18);
-				final Object reqData = reqInfo.get(21);
-				final byte[] reqBody = reqData instanceof List ? (byte[])((List)reqData).get(0) : null;
+				final ReqInfo reqInfo = ReqInfo.parse(rs.getString(3));
+				final String verb = reqInfo.getVerb();
 				// decode response_object
-				final List respInfo = findArrayChildrenInHexPlist(rs.getString(1));
+				final List respInfo = (List)parseHexPlistMap(rs.getString(1)).get("Array");
 				final URL url = new URL((String)((Map)respInfo.get(0)).get("_CFURLString"));
 				final short status = (short)((Long)respInfo.get(3)).longValue();
 				final byte[] respBody = decodeHex(rs.getString(2));
 				// start printing request
-				byte[] req = parseMessage(reqInfo.get(19), SKIP_NOTHING,
-						reqBody, "%s %s HTTP/1.1\r\n", verb, url.getFile());
+				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_NOTHING,
+						reqInfo.getBody(), "%s %s HTTP/1.1\r\n", verb, url.getFile());
 				// start printing response
 				byte[] resp = parseMessage(respInfo.get(4), SKIP_CONTENT_LENGTH_ENCODING,
 						respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
@@ -181,8 +179,57 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		}
 	}
 
-	private static List findArrayChildrenInHexPlist(final String src) throws IOException {
-		return (List)parseHexPlistMap(src).get("Array");
+	private static class ReqInfo {
+		private final List items;
+		private final Version version;
+		public static final int NOT_AVAILABLE = -1;
+
+		private ReqInfo(Map m) {
+			items = (List)m.get("Array");
+			version = Version.get((long)m.get("Version"));
+		}
+
+		public static ReqInfo parse(final String src) throws IOException {
+			return new ReqInfo(parseHexPlistMap(src));
+		}
+
+		public String getVerb() {
+			return (String)items.get(version.verbIndex);
+		}
+
+		public byte[] getBody() {
+			if (version.reqDataIndex == NOT_AVAILABLE) return null;
+			final Object d = items.get(version.reqDataIndex);
+			return d instanceof List ? (byte[])((List)d).get(0) : null;
+		}
+
+		public Map<String, Object> getHeaders() {
+			return (Map<String, Object>) items.get(version.headersIndex);
+		}
+
+		private enum Version {
+			V9(9, 18, 19, 21),
+			V4(4, 13, 14, NOT_AVAILABLE);
+
+			public final int verbIndex, headersIndex, reqDataIndex;
+			private final int number;
+
+			private Version(int number, int verbIndex, int headersIndex, int reqDataIndex) {
+				this.number = number;
+				this.verbIndex = verbIndex;
+				this.headersIndex = headersIndex;
+				this.reqDataIndex = reqDataIndex;
+			}
+
+			public static Version get(long number) {
+				Version max = null;
+				for (Version v : Version.values()) {
+					if (v.number == number) return v;
+					if (max == null || v.number > max.number) max = v;
+				}
+				return max;
+			}
+		}
 	}
 
 	private static Map parseHexPlistMap(final String src) throws IOException {
