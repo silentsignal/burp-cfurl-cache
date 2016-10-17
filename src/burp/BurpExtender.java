@@ -38,13 +38,13 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	private static class Entry implements IHttpService {
 		public final byte[] request, response;
 		private final String host, protocol, verb;
-		private final int port;
+		private final int port, id;
 		private final URL url;
 		private final Date timestamp;
 		private final short status;
 
 		public Entry(byte[] request, byte[] response, String verb, URL url,
-				Date timestamp, short status) {
+				Date timestamp, short status, int id) {
 			this.request = request;
 			this.response = response;
 			this.verb = verb;
@@ -58,10 +58,11 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 			this.protocol = url.getProtocol();
 			this.timestamp = timestamp;
 			this.status = status;
+			this.id = id;
 		}
 
 		public String toString() {
-			return String.format("%s | %s %s (%d)", timestamp, verb, url, status);
+			return String.format("(%d) %s | %s %s (%d)", id, timestamp, verb, url, status);
 		}
 
 		public String getHost() { return host; }
@@ -131,7 +132,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery(
 					"SELECT HEX(response_object), HEX(receiver_data), " +
-					"HEX(request_object), time_stamp FROM cfurl_cache_blob_data bd " +
+					"HEX(request_object), time_stamp, rd.entry_id FROM cfurl_cache_blob_data bd " +
 					"JOIN cfurl_cache_receiver_data rd ON bd.entry_ID = rd.entry_ID " +
 					"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID")) {
 			while (rs.next()) {
@@ -155,7 +156,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				// create entry
 				final Date ts = DatatypeConverter.parseDateTime(
 						rs.getString(4).replace(' ', 'T')).getTime();
-				model.addElement(new Entry(req, resp, verb, url, ts, status));
+				model.addElement(new Entry(req, resp, verb, url, ts, status, rs.getInt(5)));
 			}
 		}
 	}
