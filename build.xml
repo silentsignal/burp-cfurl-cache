@@ -5,9 +5,7 @@
 			<zipgroupfileset dir="lib" includes="sqlite-*.jar"/>
 			<fileset dir="build">
 				<include name="burp/BurpExtender*.class"/>
-				<include name="burp/Base64*.class"/>
 				<include name="burp/BinaryPListParser*.class"/>
-				<include name="burp/XML*.class"/>
 			</fileset>
 		</zip>
 	</target>
