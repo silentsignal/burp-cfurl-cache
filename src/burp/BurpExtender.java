@@ -75,7 +75,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		private static final byte[] EMPTY_BYTE_ARRAY = {};
 
 		public void setTarget(Entry target) { this.target = target; }
-		public IHttpService getHttpService() { return target == null ? null : target; }
+		public IHttpService getHttpService() { return target; }
 		public byte[] getRequest() { return target == null ? EMPTY_BYTE_ARRAY : target.request; }
 		public byte[] getResponse() { return target == null ? EMPTY_BYTE_ARRAY : target.response; }
 	}
