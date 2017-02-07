@@ -126,24 +126,23 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	private void fillModelFromDatabase(final String dbFile) throws IOException,
 			SQLException, ClassNotFoundException {
 		Class.forName("org.sqlite.JDBC");
-		// BLOB is not implemented by SQLite JDBC driver...
 		try (
 				Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
 				Statement stmt = conn.createStatement();
 				ResultSet rs = stmt.executeQuery(
-					"SELECT HEX(response_object), HEX(receiver_data), " +
-					"HEX(request_object), time_stamp, rd.entry_id FROM cfurl_cache_blob_data bd " +
+					"SELECT response_object, receiver_data, " +
+					"request_object, time_stamp, rd.entry_id FROM cfurl_cache_blob_data bd " +
 					"JOIN cfurl_cache_receiver_data rd ON bd.entry_ID = rd.entry_ID " +
 					"JOIN cfurl_cache_response cr ON cr.entry_ID = rd.entry_ID")) {
 			while (rs.next()) {
 				// decode request_object
-				final ReqInfo reqInfo = ReqInfo.parse(rs.getString(3));
+				final ReqInfo reqInfo = ReqInfo.parse(rs.getBytes(3));
 				final String verb = reqInfo.getVerb();
 				// decode response_object
-				final List respInfo = (List)parseHexPlistMap(rs.getString(1)).get("Array");
+				final List respInfo = (List)parsePlistMap(rs.getBytes(1)).get("Array");
 				final URL url = new URL((String)((Map)respInfo.get(0)).get("_CFURLString"));
 				final short status = (short)((Long)respInfo.get(3)).longValue();
-				final byte[] respBody = decodeHex(rs.getString(2));
+				final byte[] respBody = rs.getBytes(2);
 				// start printing request
 				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_NOTHING,
 						reqInfo.getBody(), "%s %s HTTP/1.1\r\nHost: %s\r\n", verb,
@@ -190,8 +189,8 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 			version = Version.get((long)m.get("Version"));
 		}
 
-		public static ReqInfo parse(final String src) throws IOException {
-			return new ReqInfo(parseHexPlistMap(src));
+		public static ReqInfo parse(final byte[] src) throws IOException {
+			return new ReqInfo(parsePlistMap(src));
 		}
 
 		public String getVerb() {
@@ -234,17 +233,8 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		}
 	}
 
-	private static Map parseHexPlistMap(final String src) throws IOException {
-		return (Map)PARSER.parse(decodeHex(src));
-	}
-
-	private static byte[] decodeHex(String s) {
-		int length = s.length() / 2;
-		byte[] b = new byte[length];
-		for (int i = 0; i < length; i++) {
-			b[i] = (byte)Short.parseShort(s.substring(i * 2, i * 2 + 2), 16);
-		}
-		return b;
+	private static Map parsePlistMap(final byte[] src) throws IOException {
+		return (Map)PARSER.parse(src);
 	}
 
 	private static String httpStatusString(short code) {
