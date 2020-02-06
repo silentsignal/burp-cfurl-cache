@@ -18,9 +18,10 @@ import javax.xml.bind.DatatypeConverter;
 public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener, ActionListener {
 	private final static BinaryPListParser PARSER = new BinaryPListParser();
 	private final static byte[] CRLF = {'\r', '\n'};
-	private final static Set<String> SKIP_CONTENT_LENGTH_ENCODING =
+	private final static Set<String> SKIP_HHAA_CONTENT_LENGTH_ENCODING =
 		new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
-	private final static Set<String> SKIP_NOTHING = Collections.emptySet();
+	private final static String HEADER_HHAA = "__hhaa__";
+	private final static Set<String> SKIP_HHAA = Collections.singleton(HEADER_HHAA);
 	// TODO use table instead of list
 	private final DefaultListModel<Entry> model = new DefaultListModel<>();
 	private final JList<Entry> list = new JList<>(model);
@@ -31,8 +32,9 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	private IBurpExtenderCallbacks callbacks;
 
 	static {
-		SKIP_CONTENT_LENGTH_ENCODING.add("Content-Length");
-		SKIP_CONTENT_LENGTH_ENCODING.add("Content-Encoding");
+		SKIP_HHAA_CONTENT_LENGTH_ENCODING.add(HEADER_HHAA);
+		SKIP_HHAA_CONTENT_LENGTH_ENCODING.add("Content-Length");
+		SKIP_HHAA_CONTENT_LENGTH_ENCODING.add("Content-Encoding");
 	}
 
 	private static class Entry implements IHttpService {
@@ -144,11 +146,11 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				final short status = (short)((Long)respInfo.get(3)).longValue();
 				final byte[] respBody = rs.getBytes(2);
 				// start printing request
-				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_NOTHING,
+				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_HHAA,
 						reqInfo.getBody(), "%s %s HTTP/1.1\r\nHost: %s\r\n", verb,
 						url.getFile(), url.getHost());
 				// start printing response
-				byte[] resp = parseMessage(respInfo.get(4), SKIP_CONTENT_LENGTH_ENCODING,
+				byte[] resp = parseMessage(respInfo.get(4), SKIP_HHAA_CONTENT_LENGTH_ENCODING,
 						respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
 						status, httpStatusString(status), respBody.length);
 				// create entry
