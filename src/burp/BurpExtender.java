@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+import java.text.*;
 import java.util.*;
 import java.sql.DriverManager;
 import java.sql.Connection;
@@ -13,7 +14,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import javax.swing.*;
 import javax.swing.event.*;
-import javax.xml.bind.DatatypeConverter;
 
 public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener, ActionListener {
 	private final static BinaryPListParser PARSER = new BinaryPListParser();
@@ -22,6 +22,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 		new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
 	private final static String HEADER_HHAA = "__hhaa__";
 	private final static Set<String> SKIP_HHAA = Collections.singleton(HEADER_HHAA);
+	private final static DateFormat ISO8601 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 	// TODO use table instead of list
 	private final DefaultListModel<Entry> model = new DefaultListModel<>();
 	private final JList<Entry> list = new JList<>(model);
@@ -126,7 +127,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 	}
 
 	private void fillModelFromDatabase(final String dbFile) throws IOException,
-			SQLException, ClassNotFoundException {
+			SQLException, ClassNotFoundException, ParseException {
 		Class.forName("org.sqlite.JDBC");
 		try (
 				Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
@@ -154,8 +155,7 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 						respBody, "HTTP/1.1 %d %s\r\nContent-Length: %d\r\n",
 						status, httpStatusString(status), respBody.length);
 				// create entry
-				final Date ts = DatatypeConverter.parseDateTime(
-						rs.getString(4).replace(' ', 'T')).getTime();
+				final Date ts = ISO8601.parse(rs.getString(4));
 				model.addElement(new Entry(req, resp, verb, url, ts, status, rs.getInt(5)));
 			}
 		}
