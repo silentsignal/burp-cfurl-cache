@@ -5,6 +5,7 @@ import java.awt.BorderLayout;
 import java.awt.event.*;
 import java.io.*;
 import java.net.*;
+import java.nio.file.Files;
 import java.text.*;
 import java.util.*;
 import java.sql.DriverManager;
@@ -128,6 +129,8 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 
 	private void fillModelFromDatabase(final String dbFile) throws IOException,
 			SQLException, ClassNotFoundException, ParseException {
+		final File fsCachedData = new File(new File(dbFile).getParentFile(), "fsCachedData");
+		final boolean fsCachedDataExists = fsCachedData.exists();
 		Class.forName("org.sqlite.JDBC");
 		try (
 				Connection conn = DriverManager.getConnection("jdbc:sqlite:" + dbFile);
@@ -145,7 +148,13 @@ public class BurpExtender implements IBurpExtender, ITab, ListSelectionListener,
 				final List respInfo = (List)parsePlistMap(rs.getBytes(1)).get("Array");
 				final URL url = new URL((String)((Map)respInfo.get(0)).get("_CFURLString"));
 				final short status = (short)((Long)respInfo.get(3)).longValue();
-				final byte[] respBody = rs.getBytes(2);
+				byte[] respBody = rs.getBytes(2);
+				if (respBody.length == 36 && fsCachedDataExists) {
+					final File cache = new File(fsCachedData, new String(respBody, "UTF-8"));
+					if (cache.exists()) {
+						respBody = Files.readAllBytes(cache.toPath());
+					}
+				}
 				// start printing request
 				byte[] req = parseMessage(reqInfo.getHeaders(), SKIP_HHAA,
 						reqInfo.getBody(), "%s %s HTTP/1.1\r\nHost: %s\r\n", verb,
